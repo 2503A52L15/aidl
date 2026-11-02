@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cybercrime Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Cybercrime Detection & Legal Section Prediction</h1>
+        <p class="subtitle">
+          Enter a case description to detect the likely cybercrime category and suggested legal sections.
+        </p>
+
+        <form id="predict-form">
+          <label for="description">Case Description</label>
+          <textarea
+            id="description"
+            name="description"
+            rows="8"
+            placeholder="Example: A victim received a fraudulent message asking for OTP and the attacker stole banking credentials..."
+          ></textarea>
+
+          <button type="submit">Predict</button>
+        </form>
+
+        <div id="result" class="result hidden">
+          <h2>Prediction Result</h2>
+          <div class="result-item">
+            <span class="label">Cybercrime Type:</span>
+            <strong id="crime-type">-</strong>
+          </div>
+          <div class="result-item">
+            <span class="label">Legal Sections:</span>
+            <ul id="legal-sections"></ul>
+          </div>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('predict-form');
+      const result = document.getElementById('result');
+      const errorBox = document.getElementById('error');
+      const crimeType = document.getElementById('crime-type');
+      const legalSections = document.getElementById('legal-sections');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const description = document.getElementById('description').value.trim();
+        if (!description) {
+          showError('Please enter a case description.');
+          return;
+        }
+
+        showError('');
+        result.classList.add('hidden');
+
+        const formData = new FormData();
+        formData.append('description', description);
+
+        try {
+          const response = await fetch('/predict', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            showError(data.error || 'Prediction failed.');
+            return;
+          }
+
+          crimeType.textContent = data.crime_type || 'Unknown';
+          legalSections.innerHTML = '';
+
+          if (data.legal_sections && data.legal_sections.length > 0) {
+            data.legal_sections.forEach((section) => {
+              const li = document.createElement('li');
+              li.textContent = section;
+              legalSections.appendChild(li);
+            });
+          } else {
+            const li = document.createElement('li');
+            li.textContent = 'No section matched the prediction threshold.';
+            legalSections.appendChild(li);
+          }
+
+          result.classList.remove('hidden');
+        } catch (error) {
+          showError('Something went wrong. Please try again.');
+        }
+      });
+
+      function showError(message) {
+        if (!message) {
+          errorBox.classList.add('hidden');
+          errorBox.textContent = '';
+          return;
+        }
+
+        errorBox.textContent = message;
+        errorBox.classList.remove('hidden');
+      }
+    </script>
+  </body>
+</html>
